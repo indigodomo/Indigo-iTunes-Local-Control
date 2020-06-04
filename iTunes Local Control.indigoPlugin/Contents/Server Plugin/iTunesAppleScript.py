@@ -1,16 +1,36 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 ################################################################################
-# iTunes Applescripts
+# iTunes/Music Applescripts
 ################################################################################
 
 import applescript
 import indigo
 import inspect
+import platform
 
 ################################################################################
 # applescript helpers
 ################################################################################
+def _get_correct_app_name():
+	"""
+	In macOS Catalina (10.15) the app used for music changed to Music from iTunes
+	so we need to use the correct name in the Tell statements. This function will
+	return the correct name based on the macOS version.
+	
+	The first iteration will assume "iTunes" unless the middle number in the macOS
+	version is 15 or greater, in which case it will return "Music"
+	
+    :return: either "iTunes" or "Music" depending on what version of macOS is running.
+    """
+	app_name = "iTunes"
+	try:
+		if int(platform.mac_ver()[0].split(".")[1]) >= 15:
+			app_name = "Music"
+	except:
+		pass
+	return app_name
+	
 def _make(ascript, wrap=True):
     if wrap: ascript = _wrap(ascript)
     return applescript.AppleScript(source=ascript)
@@ -19,11 +39,11 @@ def _make(ascript, wrap=True):
 def _wrap(ascript):
     return '''
     on run(args)
-        tell application "iTunes"
+        tell application "{}"
             {}
         end tell
     end run
-    '''.format(ascript)
+    '''.format(_get_correct_app_name(), ascript)
 
 #-------------------------------------------------------------------------------
 def _run(script_object, *args):
@@ -50,8 +70,8 @@ _quit = _make('''
 
 #-------------------------------------------------------------------------------
 _running = _make('''
-        return application "iTunes" is running
-    ''', wrap=False)
+        return application "{}" is running
+    '''.format(_get_correct_app_name()), wrap=False)
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 _volume_get = _make('''
